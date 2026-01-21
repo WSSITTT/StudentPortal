@@ -115,30 +115,47 @@ async function verifyOTP() {
     }
 }
 
-// Google Login
+// Google Login - SIMPLIFIED VERSION FOR TESTING
 function loginWithGoogle() {
-    // Use the Google Client ID from your Vercel environment
-    const clientId = process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID';
+    console.log('Google login clicked');
     
-    // Determine redirect URI based on environment
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                        window.location.hostname === '127.0.0.1';
+    // SIMULATE GOOGLE LOGIN FOR NOW
+    // Show a prompt to simulate
+    const email = prompt('Simulating Google Login\n\nEnter test email:\n(Use: patrobloxgaming15@gmail.com)');
     
-    const redirectUri = isLocalhost 
-        ? 'http://localhost:3000/api/google-auth'
-        : 'https://waterloosecstudentportal.vercel.app/api/google-auth';
+    if (!email) {
+        console.log('Login cancelled');
+        return;
+    }
     
-    // Create Google OAuth URL
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${clientId}` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&response_type=code` +
-        `&scope=profile%20email` +
-        `&access_type=offline` +
-        `&prompt=consent`;
+    // Check if email is in our database
+    const testUsers = {
+        'patrobloxgaming15@gmail.com': 'Keyshaun Sookdar',
+        'KSookdar@proton.me': 'Keith Sookdar', 
+        'favnc@proton.me': 'Pat Williams'
+    };
     
-    console.log('Redirecting to Google login...');
-    window.location.href = googleAuthUrl;
+    const userName = testUsers[email];
+    
+    if (userName) {
+        console.log('Login successful for:', email);
+        
+        // Save to localStorage
+        const userData = {
+            name: userName,
+            email: email,
+            loginMethod: 'google'
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('auth_token', 'google_simulated_token_' + Date.now());
+        
+        // Redirect to dashboard
+        window.location.href = '/index.html';
+    } else {
+        alert('❌ Email not registered in student portal.\n\nRegistered emails:\n• patrobloxgaming15@gmail.com\n• KSookdar@proton.me\n• favnc@proton.me');
+        console.log('Email not registered:', email);
+    }
 }
 
 // Logout
