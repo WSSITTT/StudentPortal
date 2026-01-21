@@ -1,7 +1,7 @@
 // Configuration
 const API_BASE = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000/api' 
-    : 'https://waterloosecstudentportal.vercel.app/api';
+    : '/api'; // Use relative path for Vercel
 
 let currentPhoneNumber = '';
 
@@ -47,6 +47,7 @@ async function handlePhoneLogin() {
     currentPhoneNumber = phoneNumber;
     
     try {
+        console.log('Sending OTP request for:', phoneNumber);
         const response = await fetch(`${API_BASE}/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -54,6 +55,7 @@ async function handlePhoneLogin() {
         });
         
         const data = await response.json();
+        console.log('OTP response:', data);
         
         if (data.success) {
             // Show OTP input
@@ -65,11 +67,15 @@ async function handlePhoneLogin() {
             if (data.otp) {
                 console.log('OTP for testing:', data.otp);
                 document.getElementById('otpCode').value = data.otp;
+                showError(`OTP: ${data.otp} (Check console for real SMS)`);
+            } else {
+                showError('OTP sent! Check Vercel logs for code.');
             }
         } else {
             showError(data.error || 'Failed to send OTP');
         }
     } catch (error) {
+        console.error('Network error:', error);
         showError('Network error. Please try again.');
     }
 }
@@ -83,6 +89,7 @@ async function verifyOTP() {
     }
     
     try {
+        console.log('Verifying OTP for:', currentPhoneNumber);
         const response = await fetch(`${API_BASE}/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -93,12 +100,14 @@ async function verifyOTP() {
         });
         
         const data = await response.json();
+        console.log('Verify response:', data);
         
         if (data.success) {
             // Save user data
             const userData = {
                 phone: currentPhoneNumber,
                 name: data.user?.name || 'Student',
+                email: data.user?.email,
                 loginMethod: 'phone'
             };
             
@@ -111,6 +120,7 @@ async function verifyOTP() {
             showError(data.error || 'Invalid OTP');
         }
     } catch (error) {
+        console.error('Verification error:', error);
         showError('Verification failed. Please try again.');
     }
 }
@@ -120,8 +130,7 @@ function loginWithGoogle() {
     console.log('Google login clicked');
     
     // SIMULATE GOOGLE LOGIN FOR NOW
-    // Show a prompt to simulate
-    const email = prompt('Simulating Google Login\n\nEnter test email:\n(Use: patrobloxgaming15@gmail.com)');
+    const email = prompt('Student Portal Login\n\nEnter your registered email:\n\n• patrobloxgaming15@gmail.com (Keyshaun Sookdar)\n• KSookdar@proton.me (Keith Sookdar)\n• favnc@proton.me (Pat Williams)');
     
     if (!email) {
         console.log('Login cancelled');
@@ -148,12 +157,12 @@ function loginWithGoogle() {
         };
         
         localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('auth_token', 'google_simulated_token_' + Date.now());
+        localStorage.setItem('auth_token', 'google_token_' + Date.now());
         
         // Redirect to dashboard
         window.location.href = '/index.html';
     } else {
-        alert('❌ Email not registered in student portal.\n\nRegistered emails:\n• patrobloxgaming15@gmail.com\n• KSookdar@proton.me\n• favnc@proton.me');
+        alert('❌ Email not registered in student portal.\n\nPlease use one of these test emails:\n\n• patrobloxgaming15@gmail.com (Keyshaun Sookdar)\n• KSookdar@proton.me (Keith Sookdar)\n• favnc@proton.me (Pat Williams)');
         console.log('Email not registered:', email);
     }
 }
@@ -167,38 +176,96 @@ function logout() {
 
 // ========== RESULTS FUNCTIONS ==========
 
-// Load Student Results
+// Load Student Results - FIXED VERSION
 async function loadStudentResults() {
+    console.log('Loading student results...');
+    
     try {
-        const response = await fetch(`${API_BASE}/results`);
-        const data = await response.json();
-        
         // Get current user
-        const user = JSON.parse(localStorage.getItem('user'));
-        const userName = user?.name;
+        const userStr = localStorage.getItem('user');
+        const token = localStorage.getItem('auth_token');
         
-        // Find student in results
-        const student = data.students.find(s => 
-            s.name.toLowerCase() === userName.toLowerCase()
-        );
-        
-        if (!student) {
-            document.getElementById('resultsTable').innerHTML = 
-                '<tr><td colspan="4">No results found for your account.</td></tr>';
+        if (!userStr || !token) {
+            console.error('No user data found');
+            window.location.href = '/login.html';
             return;
         }
         
-        // Update student name
+        const user = JSON.parse(userStr);
+        const userName = user?.name;
+        
+        console.log('Current user:', userName);
+        
+        // Fetch results
+        const response = await fetch(`${API_BASE}/results`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Results data loaded');
+        
+        // Find student in results - IMPROVED MATCHING
+        let student = null;
+        
+        if (data && data.students) {
+            // Try exact match first
+            student = data.students.find(s => s.name === userName);
+            
+            // If not found, try case-insensitive match
+            if (!student) {
+                student = data.students.find(s => 
+                    s.name.toLowerCase() === userName.toLowerCase()
+                );
+            }
+            
+            // If still not found, try partial match
+            if (!student && userName) {
+                const firstName = userName.split(' ')[0];
+                student = data.students.find(s => 
+                    s.name.toLowerCase().includes(firstName.toLowerCase())
+                );
+            }
+        }
+        
+        if (!student) {
+            console.error('Student not found in results:', userName);
+            console.log('Available students:', data.students?.map(s => s.name));
+            
+            const tableBody = document.getElementById('resultsTable')?.querySelector('tbody');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px;">
+                            <h3>No results found for: ${userName}</h3>
+                            <p>Available students in system:</p>
+                            <ul style="list-style: none; padding: 0;">
+                                ${data.students?.map(s => `<li>• ${s.name}</li>`).join('') || ''}
+                            </ul>
+                        </td>
+                    </tr>
+                `;
+            }
+            return;
+        }
+        
+        console.log('Found student:', student.name);
+        
+        // Update student name on dashboard
         if (document.getElementById('studentName')) {
             document.getElementById('studentName').textContent = student.name;
         }
+        if (document.getElementById('userName')) {
+            document.getElementById('userName').textContent = student.name;
+        }
         
         // Calculate totals
-        const scores = Object.values(student.scores);
-        const total = scores.reduce((sum, score) => sum + score, 0);
-        const average = Math.round(total / scores.length);
+        const scores = student.scores ? Object.values(student.scores) : [];
+        const total = scores.reduce((sum, score) => sum + (score || 0), 0);
+        const average = scores.length > 0 ? Math.round(total / scores.length) : 0;
         
-        // Update summary
+        // Update summary cards
         if (document.getElementById('overallAverage')) {
             document.getElementById('overallAverage').textContent = average;
         }
@@ -207,21 +274,25 @@ async function loadStudentResults() {
         }
         
         // Calculate rank
-        const allStudents = data.students.map(s => ({
-            name: s.name,
-            total: Object.values(s.scores).reduce((sum, score) => sum + score, 0)
-        }));
-        
-        allStudents.sort((a, b) => b.total - a.total);
-        const rank = allStudents.findIndex(s => s.name === student.name) + 1;
-        
-        if (document.getElementById('classRank')) {
-            document.getElementById('classRank').textContent = `#${rank}`;
+        if (data.students && data.students.length > 0) {
+            const allStudents = data.students.map(s => ({
+                name: s.name,
+                total: s.scores ? Object.values(s.scores).reduce((sum, score) => sum + (score || 0), 0) : 0
+            }));
+            
+            allStudents.sort((a, b) => b.total - a.total);
+            const rank = allStudents.findIndex(s => s.name === student.name) + 1;
+            
+            if (document.getElementById('classRank')) {
+                document.getElementById('classRank').textContent = `#${rank}`;
+                document.getElementById('classRank').nextElementSibling.textContent = 
+                    `Out of ${data.students.length} students`;
+            }
         }
         
-        // Fill table
-        const tableBody = document.getElementById('resultsTable').querySelector('tbody');
-        if (tableBody) {
+        // Fill table with results
+        const tableBody = document.getElementById('resultsTable')?.querySelector('tbody');
+        if (tableBody && student.scores) {
             tableBody.innerHTML = '';
             
             Object.entries(student.scores).forEach(([subject, score]) => {
@@ -230,7 +301,7 @@ async function loadStudentResults() {
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${subject.charAt(0).toUpperCase() + subject.slice(1)}</td>
+                    <td><strong>${subject.charAt(0).toUpperCase() + subject.slice(1)}</strong></td>
                     <td>${score}/100</td>
                     <td class="grade ${grade}">${grade}</td>
                     <td><span class="status ${status}">${status.toUpperCase()}</span></td>
@@ -239,11 +310,24 @@ async function loadStudentResults() {
             });
         }
         
+        console.log('Results loaded successfully for:', student.name);
+        
     } catch (error) {
         console.error('Error loading results:', error);
-        if (document.getElementById('resultsTable')) {
-            document.getElementById('resultsTable').innerHTML = 
-                '<tr><td colspan="4" class="error">Failed to load results. Please try again later.</td></tr>';
+        
+        const tableBody = document.getElementById('resultsTable')?.querySelector('tbody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="error">
+                        <h3>Error Loading Results</h3>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px;">
+                            Retry Loading Results
+                        </button>
+                    </td>
+                </tr>
+            `;
         }
     }
 }
@@ -253,6 +337,7 @@ function getGrade(score) {
     if (score >= 80) return 'B';
     if (score >= 70) return 'C';
     if (score >= 60) return 'D';
+    if (score >= 50) return 'E';
     return 'F';
 }
 
@@ -275,10 +360,26 @@ function showError(message) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, checking auth...');
     checkAuth();
     
     // Load results if on dashboard
     if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
-        loadStudentResults();
+        console.log('On dashboard, loading results...');
+        setTimeout(() => {
+            loadStudentResults();
+        }, 100); // Small delay to ensure DOM is ready
+    }
+    
+    // Add test credentials info for login page
+    if (window.location.pathname.includes('login.html')) {
+        console.log('On login page, ready for authentication');
     }
 });
+
+// Debug function to check localStorage
+function debugAuth() {
+    console.log('User:', localStorage.getItem('user'));
+    console.log('Token:', localStorage.getItem('auth_token'));
+    console.log('API Base:', API_BASE);
+}

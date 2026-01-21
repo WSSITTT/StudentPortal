@@ -18,16 +18,14 @@ module.exports = async (req, res) => {
   }
   
   try {
-    // Read results.json
+    // Read results.json - FIXED PATH for Vercel
     const resultsPath = path.join(process.cwd(), 'db', 'results.json');
+    console.log('Reading results from:', resultsPath);
+    
     const resultsData = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
-    // Optional: Add authentication check
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      // Verify JWT token if provided
-      console.log('Authentication header present');
-    }
+    // Log for debugging
+    console.log(`Loaded ${resultsData.students?.length || 0} students`);
     
     res.status(200).json(resultsData);
     

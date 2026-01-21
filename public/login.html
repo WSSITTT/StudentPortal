@@ -154,6 +154,19 @@
             position: relative;
             z-index: 3;
         }
+        
+        /* Additional backup link */
+        .backup-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .backup-link a {
+            color: #667eea;
+            text-decoration: underline;
+            font-size: 14px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -163,7 +176,7 @@
         <div class="login-section">
             <h2>Login with Phone</h2>
             <div class="form-group">
-                <input type="tel" id="phoneNumber" placeholder="+1 (234) 567-8900" required>
+                <input type="tel" id="phoneNumber" placeholder="+1 (868) 739-3193" required>
             </div>
             <div id="otpSection" style="display:none">
                 <div class="form-group">
@@ -173,6 +186,7 @@
             </div>
             <button onclick="handlePhoneLogin()" id="phoneBtn">Send OTP</button>
             <button onclick="verifyOTP()" id="verifyBtn" style="display:none">Verify OTP</button>
+            <p class="otp-hint">Test phone: +18687393193 (Check Vercel logs for OTP)</p>
         </div>
         
         <div class="divider">
@@ -185,9 +199,20 @@
                 <img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google">
                 Sign in with Google
             </button>
+            <div class="backup-link">
+                <a onclick="loginWithGoogle()">Click here if button doesn't work</a>
+            </div>
         </div>
         
         <div id="errorMessage" class="error"></div>
+        
+        <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
+            <p><strong>Test Credentials:</strong></p>
+            <p>Phone: +18687393193</p>
+            <p>Google: patrobloxgaming15@gmail.com</p>
+            <p>Google: KSookdar@proton.me</p>
+            <p>Google: favnc@proton.me</p>
+        </div>
     </div>
     
     <script src="/app/system.js"></script>
