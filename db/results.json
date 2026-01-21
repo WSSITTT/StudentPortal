@@ -1,0 +1,52 @@
+{
+  "students": [
+    {
+      "name": "Keyshaun Sookdar",
+      "scores": {
+        "maths": 60,
+        "english": 70,
+        "science": 80,
+        "history": 90,
+        "geography": 95
+      },
+      "average": 79,
+      "total": 395
+    },
+    {
+      "name": "Pat Williams",
+      "scores": {
+        "maths": 55,
+        "english": 65,
+        "science": 75,
+        "history": 85,
+        "geography": 95
+      },
+      "average": 75,
+      "total": 375
+    },
+    {
+      "name": "Keith Sookdar",
+      "scores": {
+        "maths": 50,
+        "english": 60,
+        "science": 70,
+        "history": 80,
+        "geography": 90
+      },
+      "average": 70,
+      "total": 350
+    },
+    {
+      "name": "Danual Bridgemohan",
+      "scores": {
+        "maths": 45,
+        "english": 55,
+        "science": 65,
+        "history": 75,
+        "geography": 85
+      },
+      "average": 65,
+      "total": 325
+    }
+  ]
+}
